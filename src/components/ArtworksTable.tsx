@@ -25,7 +25,8 @@ export const ArtworksTable = () => {
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
-  const [allArtworkIds, setAllArtworkIds] = useState<Set<number>>(new Set()); // Track all artwork IDs
+  const [allArtworkIds, setAllArtworkIds] = useState<Set<number>>(new Set());
+  const [allFetchedArtworks, setAllFetchedArtworks] = useState<Map<number, Artwork>>(new Map());
   const overlayRef = useRef<OverlayPanel>(null);
   const rowsPerPage = 10;
 
@@ -59,11 +60,64 @@ export const ArtworksTable = () => {
       // Track all artwork IDs we've seen
       const newIds = mapped.map(artwork => artwork.id);
       setAllArtworkIds(prev => new Set([...prev, ...newIds]));
+      
+      // Store all fetched artworks
+      const newArtworksMap = new Map(allFetchedArtworks);
+      mapped.forEach(artwork => {
+        newArtworksMap.set(artwork.id, artwork);
+      });
+      setAllFetchedArtworks(newArtworksMap);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fetch multiple pages for cross-page selection
+  const fetchArtworksForSelection = async (startPage: number, count: number): Promise<Artwork[]> => {
+    const artworksToSelect: Artwork[] = [];
+    let currentPage = startPage;
+    let remainingCount = count;
+    
+    while (remainingCount > 0 && currentPage <= Math.ceil(totalRecords / rowsPerPage)) {
+      try {
+        const data = await fetchArtworks(currentPage);
+        const mapped = data.data.map((item: any) => ({
+          id: item.id,
+          title: item.title || 'Untitled',
+          place_of_origin: item.place_of_origin || 'Unknown',
+          artist_display: item.artist_display || 'Unknown Artist',
+          inscriptions: item.inscriptions || 'None',
+          date_start: item.date_start || 0,
+          date_end: item.date_end || 0,
+        }));
+        
+        const artworksToTake = mapped.slice(0, remainingCount);
+        artworksToSelect.push(...artworksToTake);
+        remainingCount -= artworksToTake.length;
+        currentPage++;
+        
+        // Update our stored artworks
+        const newArtworksMap = new Map(allFetchedArtworks);
+        mapped.forEach(artwork => {
+          newArtworksMap.set(artwork.id, artwork);
+        });
+        setAllFetchedArtworks(newArtworksMap);
+        
+      } catch (error) {
+        console.error(`Error fetching page ${currentPage}:`, error);
+        break;
+      }
+    }
+    
+    return artworksToSelect;
+  };
+
+  // Fetch artworks for deselection (from already selected items)
+  const getArtworksForDeselection = async (count: number): Promise<number[]> => {
+    const selectedArray = Array.from(selectedIds);
+    return selectedArray.slice(0, count);
   };
 
   useEffect(() => {
@@ -108,16 +162,17 @@ export const ArtworksTable = () => {
     }
   };
 
-  // Handle popup submit for selecting rows
-  const handlePopupSubmit = (count: number, mode: 'select' | 'deselect') => {
+  // Handle popup submit for selecting/deselecting rows
+  const handlePopupSubmit = async (count: number, mode: 'select' | 'deselect') => {
     if (mode === 'select') {
-      // Select rows from current page only, up to the requested count
-      const idsToSelect = artworks.slice(0, Math.min(count, artworks.length)).map((artwork) => artwork.id);
+      // Start from current page and fetch as many pages as needed
+      const startPage = page + 1;
+      const artworksToSelect = await fetchArtworksForSelection(startPage, count);
+      const idsToSelect = artworksToSelect.map(artwork => artwork.id);
       selectMultiple(idsToSelect);
     } else {
-      // Deselect rows from current page only, up to the requested count
-      const currentPageSelectedRows = getSelectedRowsForCurrentPage();
-      const idsToDeselect = currentPageSelectedRows.slice(0, Math.min(count, currentPageSelectedRows.length)).map((artwork) => artwork.id);
+      // Deselect from currently selected items
+      const idsToDeselect = await getArtworksForDeselection(count);
       deselectMultiple(idsToDeselect);
     }
   };
@@ -212,7 +267,7 @@ export const ArtworksTable = () => {
       {/* Selection Info */}
       {selectedCount > 0 && (
         <div className="selection-info">
-          {selectedCount} row{selectedCount !== 1 ? 's' : ''} selected across all pages
+          {selectedCount.toLocaleString()} row{selectedCount !== 1 ? 's' : ''} selected across all pages
         </div>
       )}
 
@@ -237,18 +292,9 @@ export const ArtworksTable = () => {
             outlined
             disabled={!artworks.some(artwork => selectedIds.has(artwork.id))}
           />
-          <Button
-            label="Clear All Selection"
-            icon="pi pi-times"
-            onClick={clearSelection}
-            size="small"
-            severity="secondary"
-            outlined
-            disabled={selectedCount === 0}
-          />
         </div>
         <div className="text-sm text-600">
-          Page {page + 1} of {Math.ceil(totalRecords / rowsPerPage)} • Total: {totalRecords} records
+          Page {page + 1} of {Math.ceil(totalRecords / rowsPerPage)} • Total: {totalRecords.toLocaleString()} records
         </div>
       </div>
 
@@ -335,6 +381,8 @@ export const ArtworksTable = () => {
         overlayRef={overlayRef}
         currentPageRowCount={artworks.length}
         selectedOnCurrentPage={getSelectedRowsForCurrentPage().length}
+        totalRecords={totalRecords}
+        totalSelectedCount={selectedCount}
       />
     </div>
   );
