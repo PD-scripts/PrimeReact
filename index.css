@@ -36,77 +36,6 @@ body {
   padding: 1rem;
 }
 
-.popup-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.popup-content {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  min-width: 300px;
-}
-
-.popup-title {
-  margin-bottom: 1rem;
-  color: #333;
-  font-size: 1.2rem;
-  font-weight: 600;
-}
-
-.popup-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  margin-bottom: 1rem;
-  font-size: 1rem;
-}
-
-.popup-buttons {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: flex-end;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: background-color 0.2s;
-}
-
-.btn-primary {
-  background: #007ad9;
-  color: white;
-}
-
-.btn-primary:hover {
-  background: #0056b3;
-}
-
-.btn-secondary {
-  background: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background: #545b62;
-}
-
 .selection-info {
   margin: 1rem 0;
   padding: 0.75rem;
@@ -115,4 +44,136 @@ body {
   border-radius: 4px;
   color: #0056b3;
   font-weight: 500;
+}
+
+/* Custom overlay panel styling to match the image */
+.custom-overlay-panel .p-overlaypanel-content {
+  padding: 0 !important;
+  border-radius: 6px;
+}
+
+.custom-overlay-panel {
+  background: white;
+  border: 1px solid #dee2e6 !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1) !important;
+}
+
+/* Selection header styling */
+.p-datatable .p-datatable-thead > tr > th .p-button.p-button-text {
+  padding: 0.25rem;
+  min-width: auto;
+  width: 2rem;
+  height: 2rem;
+}
+
+.p-datatable .p-datatable-thead > tr > th .p-button.p-button-text:hover {
+  background: rgba(0, 123, 255, 0.04);
+}
+
+/* Enhanced checkbox styling in header */
+.p-datatable .p-datatable-thead > tr > th input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #007bff;
+  cursor: pointer;
+}
+
+.p-datatable .p-datatable-thead > tr > th input[type="checkbox"]:indeterminate {
+  background-color: #007bff;
+}
+
+/* Server-side pagination indicator */
+.p-paginator .p-paginator-left {
+  margin-right: auto;
+}
+
+/* Responsive table improvements */
+@media (max-width: 768px) {
+  .p-datatable .p-datatable-tbody > tr > td {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .p-paginator {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .flex.gap-2 {
+    flex-wrap: wrap;
+  }
+}
+
+/* Loading indicator improvements */
+.p-datatable .p-datatable-loading-overlay {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* Improved checkbox alignment */
+.p-datatable .p-datatable-tbody > tr > td .p-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* RadioButton styling in popup */
+.p-radiobutton .p-radiobutton-box {
+  width: 16px;
+  height: 16px;
+}
+
+.p-radiobutton .p-radiobutton-box.p-highlight {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+/* Button group styling */
+.flex.gap-2 .p-button {
+  white-space: nowrap;
+}
+
+/* Selection count badge */
+.selection-info {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.selection-info::after {
+  content: "✓";
+  background: #28a745;
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* Enhance button states */
+.p-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.p-button.p-button-outlined:not(:disabled):hover {
+  background-color: rgba(0, 123, 255, 0.04);
+}
+
+/* Table row hover effect */
+.p-datatable .p-datatable-tbody > tr:hover {
+  background-color: rgba(0, 123, 255, 0.02);
+}
+
+/* Selected row highlighting */
+.p-datatable .p-datatable-tbody > tr.p-highlight {
+  background-color: rgba(0, 123, 255, 0.08);
+}
+
+.p-datatable .p-datatable-tbody > tr.p-highlight:hover {
+  background-color: rgba(0, 123, 255, 0.12);
 }
