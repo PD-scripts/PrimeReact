@@ -79,29 +79,13 @@ export const RowSelectionPopup = ({
       className="custom-overlay-panel"
     >
       <div style={{ padding: '1rem' }}>
-        {/* Header with close button */}
+        {/* Header */}
         <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
           marginBottom: '1rem'
         }}>
           <h4 style={{ margin: '0', fontSize: '16px', fontWeight: '600' }}>
             Row Selection
           </h4>
-          <Button
-            icon="pi pi-times"
-            onClick={handleClose}
-            className="p-button-text p-button-plain p-button-sm"
-            style={{ 
-              padding: '0.25rem',
-              width: '24px',
-              height: '24px',
-              minWidth: '24px'
-            }}
-            tooltip="Close"
-            tooltipOptions={{ position: 'left' }}
-          />
         </div>
         
         {/* Mode Selection */}
