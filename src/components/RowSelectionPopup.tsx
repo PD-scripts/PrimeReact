@@ -5,7 +5,6 @@ import { InputText } from 'primereact/inputtext';
 import { RadioButton } from 'primereact/radiobutton';
 
 interface RowSelectionPopupProps {
-  visible: boolean;
   onHide: () => void;
   onSubmit: (count: number, mode: 'select' | 'deselect') => void;
   overlayRef: React.RefObject<OverlayPanel>;
@@ -16,7 +15,6 @@ interface RowSelectionPopupProps {
 }
 
 export const RowSelectionPopup = ({ 
-  visible, 
   onHide, 
   onSubmit, 
   overlayRef, 

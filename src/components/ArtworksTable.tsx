@@ -12,7 +12,6 @@ import { useArtworkData } from "./useArtworkData";
 
 export const ArtworksTable = () => {
   const [page, setPage] = useState(0);
-  const [showPopup, setShowPopup] = useState(false);
   const overlayRef = useRef<OverlayPanel>(null);
   const rowsPerPage = 10;
 
@@ -20,19 +19,13 @@ export const ArtworksTable = () => {
     selectedIds, 
     selectMultiple, 
     deselectMultiple,
-    clearSelection,
-    selectedCount,
-    toggleSelection,
-    selectAll
+    selectedCount
   } = usePersistentSelection();
 
   const {
     artworks,
     totalRecords,
     loading,
-    allArtworkIds,
-    allFetchedArtworks,
-    loadData,
     fetchArtworksForSelection
   } = useArtworkData(page, rowsPerPage);
 
@@ -49,11 +42,6 @@ export const ArtworksTable = () => {
     const selectedRows = e.value || [];
     const currentPageIds = artworks.map(artwork => artwork.id);
     
-    const selectedIdsNotOnCurrentPage = Array.from(selectedIds).filter(
-      id => !currentPageIds.includes(id)
-    );
-    
-
     const selectedIdsOnCurrentPage = selectedRows.map(row => row.id);
     
     const previouslySelectedOnCurrentPage = currentPageIds.filter(id => selectedIds.has(id));
@@ -98,7 +86,6 @@ export const ArtworksTable = () => {
     }
   };
 
-
   const isAllCurrentPageSelected = () => {
     return artworks.length > 0 && artworks.every(artwork => selectedIds.has(artwork.id));
   };
@@ -115,7 +102,6 @@ export const ArtworksTable = () => {
     <div className="card">
   
       <SelectionInfo selectedCount={selectedCount} />
-
 
       <ActionButtons
         onSelectAllCurrentPage={handleSelectAllCurrentPage}
@@ -146,10 +132,8 @@ export const ArtworksTable = () => {
         onPageChange={setPage}
       />
 
-  
       <RowSelectionPopup
-        visible={showPopup}
-        onHide={() => setShowPopup(false)}
+        onHide={() => overlayRef.current?.hide()}
         onSubmit={handlePopupSubmit}
         overlayRef={overlayRef}
         currentPageRowCount={artworks.length}
