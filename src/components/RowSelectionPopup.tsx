@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { OverlayPanel } from 'primereact/overlaypanel';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { RadioButton } from 'primereact/radiobutton';
 
 interface RowSelectionPopupProps {
-  visible: boolean;
   onHide: () => void;
   onSubmit: (count: number, mode: 'select' | 'deselect') => void;
   overlayRef: React.RefObject<OverlayPanel>;
@@ -16,7 +15,6 @@ interface RowSelectionPopupProps {
 }
 
 export const RowSelectionPopup = ({ 
-  visible, 
   onHide, 
   onSubmit, 
   overlayRef, 
@@ -28,28 +26,18 @@ export const RowSelectionPopup = ({
   const [inputValue, setInputValue] = useState<string>('');
   const [mode, setMode] = useState<'select' | 'deselect'>('select');
 
-  // Reset state when popup becomes visible
-  useEffect(() => {
-    if (visible) {
-      setInputValue('');
-      setMode('select');
-    }
-  }, [visible]);
-
   const handleSubmit = () => {
     const count = parseInt(inputValue, 10);
     if (count > 0) {
       onSubmit(count, mode);
       setInputValue('');
-      handleClose();
+      onHide();
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSubmit();
-    } else if (e.key === 'Escape') {
-      handleClose();
     }
   };
 
@@ -71,72 +59,28 @@ export const RowSelectionPopup = ({
   };
 
   const handleClose = () => {
-    // Clear the input and reset state
     setInputValue('');
-    setMode('select');
-    
-    // Hide the overlay using the ref method
-    if (overlayRef.current) {
-      overlayRef.current.hide();
-    }
-    
-    // Call the parent's onHide callback
-    onHide();
-  };
-
-  // Handle overlay panel's built-in hide event
-  const handleOverlayHide = () => {
-    setInputValue('');
-    setMode('select');
     onHide();
   };
 
   return (
     <OverlayPanel
       ref={overlayRef}
-      onHide={handleOverlayHide}
-      dismissable={true}
-      closeOnEscape={true}
-      style={{ 
-        width: '360px',
-        padding: '0',
-        border: '1px solid #dee2e6',
-        borderRadius: '6px',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.1)'
-      }}
+      onHide={onHide}
       className="custom-overlay-panel"
     >
-      <div style={{ padding: '1rem' }}>
-        {/* Header with close button */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          marginBottom: '1rem'
-        }}>
-          <h4 style={{ margin: '0', fontSize: '16px', fontWeight: '600' }}>
+      <div className="row-selection-container">
+        {/* Header */}
+        <div className="row-selection-header">
+          <h4 className="row-selection-title">
             Row Selection
           </h4>
-          <Button
-            icon="pi pi-times"
-            onClick={handleClose}
-            className="p-button-text p-button-plain p-button-sm"
-            style={{ 
-              padding: '0.25rem',
-              width: '24px',
-              height: '24px',
-              minWidth: '24px'
-            }}
-            tooltip="Close"
-            tooltipOptions={{ position: 'left' }}
-            type="button"
-          />
         </div>
         
         {/* Mode Selection */}
-        <div style={{ marginBottom: '1rem' }}>
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="row-selection-mode-container">
+          <div className="row-selection-mode-options">
+            <div className="row-selection-mode-option">
               <RadioButton
                 inputId="select-mode"
                 name="mode"
@@ -144,9 +88,9 @@ export const RowSelectionPopup = ({
                 onChange={(e) => setMode(e.value)}
                 checked={mode === 'select'}
               />
-              <label htmlFor="select-mode" style={{ fontSize: '14px' }}>Select</label>
+              <label htmlFor="select-mode" className="row-selection-mode-label">Select</label>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="row-selection-mode-option">
               <RadioButton
                 inputId="deselect-mode"
                 name="mode"
@@ -157,10 +101,7 @@ export const RowSelectionPopup = ({
               />
               <label 
                 htmlFor="deselect-mode" 
-                style={{ 
-                  fontSize: '14px',
-                  color: totalSelectedCount === 0 ? '#999' : 'inherit'
-                }}
+                className={`row-selection-mode-label ${totalSelectedCount === 0 ? 'disabled' : ''}`}
               >
                 Deselect
               </label>
@@ -169,15 +110,7 @@ export const RowSelectionPopup = ({
         </div>
 
         {/* Info Text */}
-        <div style={{ 
-          marginBottom: '1rem', 
-          fontSize: '12px', 
-          color: '#666',
-          backgroundColor: '#f8f9fa',
-          padding: '0.75rem',
-          borderRadius: '4px',
-          lineHeight: '1.4'
-        }}>
+        <div className="row-selection-info">
           {mode === 'select' 
             ? (
               <div>
@@ -204,71 +137,38 @@ export const RowSelectionPopup = ({
           type="number"
           min="1"
           max={getMaxValue()}
-          style={{
-            width: '100%',
-            padding: '0.75rem',
-            border: '1px solid #ced4da',
-            borderRadius: '4px',
-            fontSize: '14px'
-          }}
+          className="row-selection-input"
           autoFocus
         />
         
         {/* Validation Message */}
         {inputValue && parseInt(inputValue, 10) > getMaxValue() && (
-          <div style={{ 
-            marginTop: '0.5rem', 
-            fontSize: '12px', 
-            color: '#dc3545' 
-          }}>
+          <div className="row-selection-validation-error">
             Maximum {getMaxValue().toLocaleString()} rows can be {mode}ed
           </div>
         )}
 
         {/* Help text for cross-page selection */}
         {mode === 'select' && inputValue && parseInt(inputValue, 10) > currentPageRowCount && (
-          <div style={{ 
-            marginTop: '0.5rem', 
-            fontSize: '12px', 
-            color: '#0066cc',
-            fontStyle: 'italic'
-          }}>
+          <div className="row-selection-help-text">
             Will select rows across multiple pages starting from current page
           </div>
         )}
 
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          gap: '0.5rem',
-          marginTop: '1rem'
-        }}>
+        <div className="row-selection-actions">
           <Button
             label="Cancel"
             onClick={handleClose}
             outlined
-            style={{
-              padding: '0.5rem 1rem',
-              fontSize: '14px',
-              borderRadius: '4px'
-            }}
-            className="p-button-sm p-button-secondary"
-            type="button"
+            className="p-button-sm p-button-secondary row-selection-button"
           />
           <Button
             label={mode === 'select' ? 'Select' : 'Deselect'}
             onClick={handleSubmit}
             disabled={isSubmitDisabled()}
-            style={{
-              padding: '0.5rem 1rem',
-              fontSize: '14px',
-              borderRadius: '4px',
-              backgroundColor: mode === 'select' ? '#007bff' : '#dc3545',
-              border: `1px solid ${mode === 'select' ? '#007bff' : '#dc3545'}`,
-              color: 'white'
-            }}
-            className="p-button-sm"
-            type="button"
+            className={`p-button-sm row-selection-button ${
+              mode === 'select' ? 'row-selection-button-select' : 'row-selection-button-deselect'
+            }`}
           />
         </div>
       </div>
