@@ -2,6 +2,9 @@
 
 A React application showcasing server-side pagination with persistent row selection across pages, built with PrimeReact components and TypeScript.
 
+![Main Interface](./public/images/main.png)
+*Main table view showing artwork data with selection controls and pagination*
+
 ## Features
 
 ### 🎨 **Artwork Data Display**
@@ -29,20 +32,34 @@ A React application showcasing server-side pagination with persistent row select
 - **Visual Feedback**: Clear indication of selected rows and counts
 - **Keyboard Support**: Enter key support in input fields
 
+![Selection Panel](./public/images/popup.png)
+*Advanced selection dropdown allowing bulk select/deselect operations*
+
+![Server-Side Pagination](./public/images/pagination.png)
+*Network tab showing efficient server-side pagination - only current page data is fetched*
+
 ## Project Structure
 
 ```
 src/
 ├── components/
-│   ├── ArtworksTable.tsx          # Main data table component
-│   └── RowSelectionPopup.tsx      # Advanced selection panel
+│   ├── ActionButtons.tsx              # Select/Deselect all current page buttons
+│   ├── ArtworkDataTable.tsx          # Main data table component
+│   ├── ArtworkPagination.tsx         # Pagination component
+│   ├── ArtworksTable.tsx             # Main orchestrating component
+│   ├── ColumnTemplates.tsx           # Custom column body templates
+│   ├── RowSelectionPopup.tsx         # Advanced selection panel
+│   ├── SelectionHeader.tsx           # Custom table header with dropdown
+│   ├── SelectionInfo.tsx             # Selection count display
+│   ├── types.ts                      # TypeScript interfaces
+│   └── useArtworkData.ts             # Data fetching hook
 ├── hooks/
-│   └── usePersistentSelection.ts  # Custom hook for selection state
+│   └── usePersistentSelection.ts     # Custom hook for selection state
 ├── services/
-│   └── api.ts                     # API service for artwork data
-├── App.tsx                        # Main app component
-├── main.tsx                       # App entry point
-└── index.css                      # Global styles
+│   └── api.ts                        # API service for artwork data
+├── App.tsx                           # Main app component
+├── main.tsx                          # App entry point
+└── index.css                         # Global styles
 ```
 
 ## Technologies Used
@@ -84,7 +101,30 @@ npm run dev
 - **Persistent State**: Your selections remain when navigating between pages
 - **Visual Feedback**: Selected row count displayed above the table
 - **Smart Controls**: Buttons automatically enable/disable based on current state
-- **Validation**: Prevents selecting more rows than available on current page
+- **Validation**: Prevents selecting more rows than available
+
+## Component Architecture
+
+The application follows a modular component architecture for better maintainability:
+
+### Core Components
+
+- **ArtworksTable**: Main orchestrating component that manages state and coordinates child components
+- **ArtworkDataTable**: Renders the data table with custom selection logic
+- **SelectionHeader**: Custom header with checkbox and dropdown for advanced options
+- **ActionButtons**: Quick select/deselect buttons for current page
+
+### UI Components
+
+- **SelectionInfo**: Displays current selection count
+- **ArtworkPagination**: Handles pagination controls
+- **RowSelectionPopup**: Advanced selection modal with bulk operations
+
+### Utilities
+
+- **useArtworkData**: Custom hook for data fetching and caching
+- **usePersistentSelection**: Manages selection state across pages
+- **ColumnTemplates**: Reusable column formatting functions
 
 ## API Integration
 
@@ -97,28 +137,27 @@ const response = await fetch(
 );
 ```
 
-## Key Components
+### Data Flow
+1. **Server-side Pagination**: Only current page data is fetched
+2. **Efficient Caching**: Previously fetched data is stored for selection operations
+3. **Cross-page Selection**: Fetches additional pages when needed for bulk operations
 
-### ArtworksTable
-The main component that handles:
-- Data fetching and pagination
-- Selection state management
-- Table rendering and interactions
-- Integration with selection popup
+## Key Features in Detail
 
-### RowSelectionPopup
-Advanced selection panel featuring:
-- Select/Deselect mode toggle
-- Number input with validation
+### Persistent Selection System
+- Maintains selection state using Set data structure for O(1) lookup
+- Preserves selections when navigating between pages
+- Handles large datasets efficiently (129,355+ records)
+
+### Advanced Bulk Operations
+- Select/deselect multiple rows starting from current page
+- Intelligent validation prevents invalid operations
 - Real-time feedback on available operations
-- Keyboard navigation support
 
-### usePersistentSelection Hook
-Custom hook providing:
-- Selection state management
-- Bulk operations (select/deselect multiple)
-- Persistence across component re-renders
-- Utility functions for selection queries
+### Responsive Design
+- Mobile-friendly interface
+- Adaptive column widths
+- Touch-optimized controls
 
 ## Styling
 
@@ -139,12 +178,27 @@ Key style features:
 - **Efficient re-renders** - Optimized selection state updates
 - **Lazy loading** - Data fetched on demand
 - **Memory management** - Proper cleanup of selection state
+- **Component modularity** - Better React optimization through smaller components
 
 ## Browser Support
 
 - Modern browsers supporting ES2020+
 - React 18+ features
 - CSS Grid and Flexbox support
+
+## Development
+
+### Adding New Features
+1. Create new components in the `src/components/` directory
+2. Use the existing TypeScript interfaces in `types.ts`
+3. Follow the modular architecture pattern
+4. Update tests accordingly
+
+### Code Organization
+- **Single Responsibility**: Each component has one clear purpose
+- **Type Safety**: Full TypeScript coverage
+- **Reusability**: Components designed for reuse
+- **Maintainability**: Clear separation of concerns
 
 ## Contributing
 
@@ -154,18 +208,60 @@ Key style features:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-
 ## Screenshots
 
 ### Main Interface
-The main table view showing artwork data with selection controls and pagination.
+![Main Interface](./public/images/main.png)
+
+The main table view displays artwork data with:
+- Individual row checkboxes for selection
+- Header checkbox with dropdown for advanced options
+- Action buttons for quick operations
+- Page information and navigation controls
 
 ### Selection Panel
-The advanced selection dropdown allowing bulk select/deselect operations.
+![Selection Panel](./public/images/popup.png)
 
-### Persistent Selection
-Demonstration of how selections are maintained across page navigation.
+The advanced selection panel provides:
+- Select/Deselect mode toggle
+- Input field for specifying row count
+- Real-time validation and feedback
+- Information about current selection state
+
+### Server-Side Pagination Performance
+![Server-Side Pagination](./public/images/pagination.png)
+
+Network performance demonstration showing:
+- **Efficient API calls**: Only 6 requests total with 5.0 kB transferred
+- **True server-side pagination**: Each page fetches only 10 records (0.3-1.9 kB per request)
+- **Fast response times**: 56-62ms average response time
+- **Optimized data transfer**: Minimal bandwidth usage even with 129,355+ total records
+- **Smart caching**: Previously fetched data is stored for selection operations
+
+### Key UI Elements
+- **Selection Count**: Displays total selected rows across all pages
+- **Smart Buttons**: Automatically enable/disable based on current state
+- **Visual Feedback**: Clear indication of selected items
+- **Responsive Layout**: Adapts to different screen sizes
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
 
 **Built with ❤️ using React and PrimeReact**
+
+## Changelog
+
+### v2.0.0 - Component Refactoring
+- Broke down monolithic component into 9+ smaller components
+- Improved maintainability and testability
+- Enhanced type safety with dedicated interfaces
+- Better separation of concerns
+
+### v1.0.0 - Initial Release
+- Server-side pagination implementation
+- Persistent selection across pages
+- Advanced bulk selection operations
+- Integration with Art Institute of Chicago API
