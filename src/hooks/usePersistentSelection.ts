@@ -33,6 +33,18 @@ export const usePersistentSelection = () => {
     setSelectedIds(new Set(ids));
   };
 
+  const replaceSelection = (ids: number[]) => {
+    setSelectedIds(new Set(ids));
+  };
+
+  const isSelected = (id: number) => {
+    return selectedIds.has(id);
+  };
+
+  const getSelectedArray = () => {
+    return Array.from(selectedIds);
+  };
+
   return {
     selectedIds,
     toggleSelection,
@@ -40,6 +52,9 @@ export const usePersistentSelection = () => {
     deselectMultiple,
     clearSelection,
     selectAll,
+    replaceSelection,
+    isSelected,
+    getSelectedArray,
     selectedCount: selectedIds.size
   };
 };

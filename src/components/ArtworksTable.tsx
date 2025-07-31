@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { DataTable } from "primereact/datatable";
 import type { DataTableSelectionMultipleChangeEvent } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Paginator } from "primereact/paginator";
 import { Button } from "primereact/button";
+import { OverlayPanel } from "primereact/overlaypanel";
 import { fetchArtworks } from "../services/api";
 import { usePersistentSelection } from "../hooks/usePersistentSelection";
 import { RowSelectionPopup } from "./RowSelectionPopup";
@@ -24,16 +25,22 @@ export const ArtworksTable = () => {
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+  const [allArtworkIds, setAllArtworkIds] = useState<Set<number>>(new Set());
+  const [allFetchedArtworks, setAllFetchedArtworks] = useState<Map<number, Artwork>>(new Map());
+  const overlayRef = useRef<OverlayPanel>(null);
   const rowsPerPage = 10;
 
   const { 
     selectedIds, 
     selectMultiple, 
+    deselectMultiple,
     clearSelection,
-    selectedCount 
+    selectedCount,
+    toggleSelection,
+    selectAll
   } = usePersistentSelection();
 
-  // Fetch page data
+  // Fetch page data - TRUE server-side pagination
   const loadData = async (pageNumber: number) => {
     setLoading(true);
     try {
@@ -49,6 +56,17 @@ export const ArtworksTable = () => {
       }));
       setArtworks(mapped);
       setTotalRecords(data.pagination.total);
+      
+      // Track all artwork IDs we've seen
+      const newIds = mapped.map(artwork => artwork.id);
+      setAllArtworkIds(prev => new Set([...prev, ...newIds]));
+      
+      // Store all fetched artworks
+      const newArtworksMap = new Map(allFetchedArtworks);
+      mapped.forEach(artwork => {
+        newArtworksMap.set(artwork.id, artwork);
+      });
+      setAllFetchedArtworks(newArtworksMap);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -56,11 +74,57 @@ export const ArtworksTable = () => {
     }
   };
 
+  // Fetch multiple pages for cross-page selection
+  const fetchArtworksForSelection = async (startPage: number, count: number): Promise<Artwork[]> => {
+    const artworksToSelect: Artwork[] = [];
+    let currentPage = startPage;
+    let remainingCount = count;
+    
+    while (remainingCount > 0 && currentPage <= Math.ceil(totalRecords / rowsPerPage)) {
+      try {
+        const data = await fetchArtworks(currentPage);
+        const mapped = data.data.map((item: any) => ({
+          id: item.id,
+          title: item.title || 'Untitled',
+          place_of_origin: item.place_of_origin || 'Unknown',
+          artist_display: item.artist_display || 'Unknown Artist',
+          inscriptions: item.inscriptions || 'None',
+          date_start: item.date_start || 0,
+          date_end: item.date_end || 0,
+        }));
+        
+        const artworksToTake = mapped.slice(0, remainingCount);
+        artworksToSelect.push(...artworksToTake);
+        remainingCount -= artworksToTake.length;
+        currentPage++;
+        
+        // Update our stored artworks
+        const newArtworksMap = new Map(allFetchedArtworks);
+        mapped.forEach(artwork => {
+          newArtworksMap.set(artwork.id, artwork);
+        });
+        setAllFetchedArtworks(newArtworksMap);
+        
+      } catch (error) {
+        console.error(`Error fetching page ${currentPage}:`, error);
+        break;
+      }
+    }
+    
+    return artworksToSelect;
+  };
+
+  // Fetch artworks for deselection (from already selected items)
+  const getArtworksForDeselection = async (count: number): Promise<number[]> => {
+    const selectedArray = Array.from(selectedIds);
+    return selectedArray.slice(0, count);
+  };
+
   useEffect(() => {
     loadData(page);
   }, [page]);
 
-  // Get selected rows for current page
+  // Get selected rows for current page only
   const getSelectedRowsForCurrentPage = () => {
     return artworks.filter((artwork) => selectedIds.has(artwork.id));
   };
@@ -78,18 +142,99 @@ export const ArtworksTable = () => {
     // Get the IDs of rows selected on current page
     const selectedIdsOnCurrentPage = selectedRows.map(row => row.id);
     
-    // Combine selections from other pages with current page selections
-    const allSelectedIds = [...selectedIdsNotOnCurrentPage, ...selectedIdsOnCurrentPage];
-    
-    // Update selection
-    selectMultiple(allSelectedIds);
+    // Find which rows were deselected on current page
+    const previouslySelectedOnCurrentPage = currentPageIds.filter(id => selectedIds.has(id));
+    const deselectedIds = previouslySelectedOnCurrentPage.filter(id => 
+      !selectedIdsOnCurrentPage.includes(id)
+    );
+
+    // Remove deselected IDs from selection
+    if (deselectedIds.length > 0) {
+      deselectMultiple(deselectedIds);
+    }
+
+    // Add newly selected IDs
+    const newlySelectedIds = selectedIdsOnCurrentPage.filter(id => 
+      !selectedIds.has(id)
+    );
+    if (newlySelectedIds.length > 0) {
+      selectMultiple(newlySelectedIds);
+    }
   };
 
-  // Handle popup submit
-  const handlePopupSubmit = (count: number) => {
-    const idsToSelect = artworks.slice(0, count).map((artwork) => artwork.id);
-    selectMultiple([...Array.from(selectedIds), ...idsToSelect]);
-    setShowPopup(false);
+  // Handle popup submit for selecting/deselecting rows
+  const handlePopupSubmit = async (count: number, mode: 'select' | 'deselect') => {
+    if (mode === 'select') {
+      // Start from current page and fetch as many pages as needed
+      const startPage = page + 1;
+      const artworksToSelect = await fetchArtworksForSelection(startPage, count);
+      const idsToSelect = artworksToSelect.map(artwork => artwork.id);
+      selectMultiple(idsToSelect);
+    } else {
+      // Deselect from currently selected items
+      const idsToDeselect = await getArtworksForDeselection(count);
+      deselectMultiple(idsToDeselect);
+    }
+  };
+
+  // Handle select all on current page
+  const handleSelectAllCurrentPage = () => {
+    const currentPageIds = artworks.map(artwork => artwork.id);
+    selectMultiple(currentPageIds);
+  };
+
+  // Handle deselect all on current page
+  const handleDeselectAllCurrentPage = () => {
+    const currentPageIds = artworks.map(artwork => artwork.id);
+    const selectedOnCurrentPage = currentPageIds.filter(id => selectedIds.has(id));
+    if (selectedOnCurrentPage.length > 0) {
+      deselectMultiple(selectedOnCurrentPage);
+    }
+  };
+
+  // Check if all rows on current page are selected
+  const isAllCurrentPageSelected = () => {
+    return artworks.length > 0 && artworks.every(artwork => selectedIds.has(artwork.id));
+  };
+
+  // Handle chevron click
+  const handleChevronClick = (event: React.MouseEvent) => {
+    overlayRef.current?.toggle(event);
+  };
+
+  // Custom header template with chevron icon and select all functionality
+  const selectionHeaderTemplate = () => {
+    const allCurrentPageSelected = isAllCurrentPageSelected();
+    const someCurrentPageSelected = artworks.some(artwork => selectedIds.has(artwork.id));
+
+    return (
+      <div className="flex align-items-center justify-content-center gap-1">
+        <input
+          type="checkbox"
+          checked={allCurrentPageSelected}
+          ref={(el) => {
+            if (el) {
+              el.indeterminate = someCurrentPageSelected && !allCurrentPageSelected;
+            }
+          }}
+          onChange={(e) => {
+            if (e.target.checked) {
+              handleSelectAllCurrentPage();
+            } else {
+              handleDeselectAllCurrentPage();
+            }
+          }}
+          style={{ marginRight: '4px' }}
+        />
+        <Button
+          icon="pi pi-chevron-down"
+          className="p-button-text p-button-plain p-button-sm"
+          onClick={handleChevronClick}
+          tooltip="Advanced selection options"
+          tooltipOptions={{ position: 'top' }}
+        />
+      </div>
+    );
   };
 
   // Custom body templates for better display
@@ -122,7 +267,7 @@ export const ArtworksTable = () => {
       {/* Selection Info */}
       {selectedCount > 0 && (
         <div className="selection-info">
-          {selectedCount} row{selectedCount !== 1 ? 's' : ''} selected across all pages
+          {selectedCount.toLocaleString()} row{selectedCount !== 1 ? 's' : ''} selected across all pages
         </div>
       )}
 
@@ -130,24 +275,26 @@ export const ArtworksTable = () => {
       <div className="flex justify-content-between align-items-center mb-3">
         <div className="flex gap-2">
           <Button
-            label="Select Rows"
+            label="Select All Current Page"
             icon="pi pi-check-square"
-            onClick={() => setShowPopup(true)}
+            onClick={handleSelectAllCurrentPage}
             size="small"
+            severity="info"
             outlined
+            disabled={isAllCurrentPageSelected()}
           />
           <Button
-            label="Clear Selection"
-            icon="pi pi-times"
-            onClick={clearSelection}
+            label="Deselect All Current Page"
+            icon="pi pi-minus-circle"
+            onClick={handleDeselectAllCurrentPage}
             size="small"
-            severity="secondary"
+            severity="warning"
             outlined
-            disabled={selectedCount === 0}
+            disabled={!artworks.some(artwork => selectedIds.has(artwork.id))}
           />
         </div>
         <div className="text-sm text-600">
-          Page {page + 1} of {Math.ceil(totalRecords / rowsPerPage)}
+          Page {page + 1} of {Math.ceil(totalRecords / rowsPerPage)} • Total: {totalRecords.toLocaleString()} records
         </div>
       </div>
 
@@ -162,11 +309,14 @@ export const ArtworksTable = () => {
         emptyMessage="No artworks found"
         scrollable
         scrollHeight="600px"
+        lazy={true}
+        paginator={false}
       >
         <Column
           selectionMode="multiple"
           headerStyle={{ width: '3rem' }}
           bodyStyle={{ textAlign: 'center' }}
+          header={selectionHeaderTemplate}
         />
         <Column 
           field="title" 
@@ -204,23 +354,36 @@ export const ArtworksTable = () => {
         />
       </DataTable>
 
-      {/* Pagination */}
+      {/* Server-side Pagination */}
       <Paginator
         first={page * rowsPerPage}
         rows={rowsPerPage}
         totalRecords={totalRecords}
-        onPageChange={(e) => setPage(e.page)}
+        onPageChange={(e) => {
+          setPage(e.page);
+          // This triggers useEffect which calls loadData with new page
+        }}
         className="mt-3"
+        template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+        leftContent={
+          <div className="text-sm text-600">
+            Server-side pagination • Page {page + 1}
+          </div>
+        }
       />
 
-      {/* Popup */}
-      {showPopup && (
-        <RowSelectionPopup
-          onSubmit={handlePopupSubmit}
-          onCancel={() => setShowPopup(false)}
-          maxRows={artworks.length}
-        />
-      )}
+      {/* Overlay Panel for Row Selection */}
+      <RowSelectionPopup
+        visible={showPopup}
+        onHide={() => setShowPopup(false)}
+        onSubmit={handlePopupSubmit}
+        overlayRef={overlayRef}
+        currentPageRowCount={artworks.length}
+        selectedOnCurrentPage={getSelectedRowsForCurrentPage().length}
+        totalRecords={totalRecords}
+        totalSelectedCount={selectedCount}
+      />
     </div>
   );
 };
