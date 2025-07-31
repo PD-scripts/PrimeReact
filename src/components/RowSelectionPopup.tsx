@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { OverlayPanel } from 'primereact/overlaypanel';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
@@ -28,28 +28,18 @@ export const RowSelectionPopup = ({
   const [inputValue, setInputValue] = useState<string>('');
   const [mode, setMode] = useState<'select' | 'deselect'>('select');
 
-  // Reset state when popup becomes visible
-  useEffect(() => {
-    if (visible) {
-      setInputValue('');
-      setMode('select');
-    }
-  }, [visible]);
-
   const handleSubmit = () => {
     const count = parseInt(inputValue, 10);
     if (count > 0) {
       onSubmit(count, mode);
       setInputValue('');
-      handleClose();
+      onHide();
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSubmit();
-    } else if (e.key === 'Escape') {
-      handleClose();
     }
   };
 
@@ -71,32 +61,14 @@ export const RowSelectionPopup = ({
   };
 
   const handleClose = () => {
-    // Clear the input and reset state
     setInputValue('');
-    setMode('select');
-    
-    // Hide the overlay using the ref method
-    if (overlayRef.current) {
-      overlayRef.current.hide();
-    }
-    
-    // Call the parent's onHide callback
-    onHide();
-  };
-
-  // Handle overlay panel's built-in hide event
-  const handleOverlayHide = () => {
-    setInputValue('');
-    setMode('select');
     onHide();
   };
 
   return (
     <OverlayPanel
       ref={overlayRef}
-      onHide={handleOverlayHide}
-      dismissable={true}
-      closeOnEscape={true}
+      onHide={onHide}
       style={{ 
         width: '360px',
         padding: '0',
@@ -107,30 +79,13 @@ export const RowSelectionPopup = ({
       className="custom-overlay-panel"
     >
       <div style={{ padding: '1rem' }}>
-        {/* Header with close button */}
+        {/* Header */}
         <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
           marginBottom: '1rem'
         }}>
           <h4 style={{ margin: '0', fontSize: '16px', fontWeight: '600' }}>
             Row Selection
           </h4>
-          <Button
-            icon="pi pi-times"
-            onClick={handleClose}
-            className="p-button-text p-button-plain p-button-sm"
-            style={{ 
-              padding: '0.25rem',
-              width: '24px',
-              height: '24px',
-              minWidth: '24px'
-            }}
-            tooltip="Close"
-            tooltipOptions={{ position: 'left' }}
-            type="button"
-          />
         </div>
         
         {/* Mode Selection */}
@@ -253,7 +208,6 @@ export const RowSelectionPopup = ({
               borderRadius: '4px'
             }}
             className="p-button-sm p-button-secondary"
-            type="button"
           />
           <Button
             label={mode === 'select' ? 'Select' : 'Deselect'}
@@ -268,7 +222,6 @@ export const RowSelectionPopup = ({
               color: 'white'
             }}
             className="p-button-sm"
-            type="button"
           />
         </div>
       </div>

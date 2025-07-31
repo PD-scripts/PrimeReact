@@ -9,7 +9,7 @@ export const useArtworkData = (page: number, rowsPerPage: number) => {
   const [allArtworkIds, setAllArtworkIds] = useState<Set<number>>(new Set());
   const [allFetchedArtworks, setAllFetchedArtworks] = useState<Map<number, Artwork>>(new Map());
 
-  // Fetch page data - TRUE server-side pagination
+
   const loadData = async (pageNumber: number) => {
     setLoading(true);
     try {
@@ -26,11 +26,11 @@ export const useArtworkData = (page: number, rowsPerPage: number) => {
       setArtworks(mapped);
       setTotalRecords(data.pagination.total);
       
-      // Track all artwork IDs we've seen
+    
       const newIds = mapped.map(artwork => artwork.id);
       setAllArtworkIds(prev => new Set([...prev, ...newIds]));
       
-      // Store all fetched artworks
+      
       const newArtworksMap = new Map(allFetchedArtworks);
       mapped.forEach(artwork => {
         newArtworksMap.set(artwork.id, artwork);
@@ -43,7 +43,7 @@ export const useArtworkData = (page: number, rowsPerPage: number) => {
     }
   };
 
-  // Fetch multiple pages for cross-page selection
+  
   const fetchArtworksForSelection = async (startPage: number, count: number): Promise<Artwork[]> => {
     const artworksToSelect: Artwork[] = [];
     let currentPage = startPage;
@@ -67,7 +67,7 @@ export const useArtworkData = (page: number, rowsPerPage: number) => {
         remainingCount -= artworksToTake.length;
         currentPage++;
         
-        // Update our stored artworks
+        
         const newArtworksMap = new Map(allFetchedArtworks);
         mapped.forEach(artwork => {
           newArtworksMap.set(artwork.id, artwork);
